@@ -3,7 +3,7 @@
 ![ss1](./SagiJanKen_ss_1.jpg)　
 
 コンピューターと対戦し、先に５回勝てば勝利です。  
-![ss2](./SagiJanken_ss_2.jpg)  
+![ss2](./SagiJanKen_ss_2.jpg)  
 
 でも、プレイヤーは絶対に勝てない様に作られています。  
 　・最初は普通。  
