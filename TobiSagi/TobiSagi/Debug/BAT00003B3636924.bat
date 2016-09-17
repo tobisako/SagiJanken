@@ -1,0 +1,1 @@
+@echo マニフェスト リソースの最終更新日時: %TIME% (%DATE%) > .\Debug\mt.dep
