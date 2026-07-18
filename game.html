@@ -82,6 +82,9 @@
   #ghlink:hover{background:rgba(0,0,0,.6)}
   #keyhint{position:fixed;left:12px;bottom:8px;z-index:20;font-size:13px;color:#fff;
     background:rgba(0,0,0,.35);padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.3)}
+  #sebtn{position:fixed;left:12px;top:10px;z-index:20;font-size:17px;width:40px;height:32px;
+    background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.4);border-radius:999px;cursor:pointer}
+  #sebtn.off{filter:grayscale(1);opacity:.55}
 </style>
 </head>
 <body>
@@ -93,6 +96,7 @@
 
 <a id="ghlink" href="https://github.com/tobisako/SagiJanken" target="_blank" rel="noopener">↗ GitHub</a>
 <span id="keyhint">キー1＝グー・2＝チョキ・3＝パー</span>
+<button id="sebtn" title="効果音 ON/OFF">🔊</button>
 
 <div id="wrap">
   <div id="stage">
@@ -148,6 +152,16 @@ const S={ status:STS.TITLE, cntGame:0, winP:0, winC:0, aiko:0, choiceP:TE.NONE, 
 const $=id=>document.getElementById(id);
 const rnd=n=>Math.floor(Math.random()*n);
 
+/* ===== 効果音（リメイクで追加。MOSS-SoundEffect-v2.0 で生成） ===== */
+let seOn=true;
+const SE={};
+['start','kake','pon','win','lose','aiko','reach','gameover','trueend'].forEach(n=>{
+  const a=new Audio('assets/se/se_'+n+'.mp3'); a.preload='auto'; SE[n]=a;
+});
+function playSE(n){ if(!seOn||!SE[n]) return;
+  try{ SE[n].currentTime=0; SE[n].play().catch(()=>{}); }catch(e){} }
+function stopSE(){ Object.values(SE).forEach(a=>{ try{a.pause();}catch(e){} }); }
+
 function show(el,on){ el.style.display = on ? (el.tagName==='BUTTON'?'inline-block':'block') : 'none'; }
 function timerOnce(ms){ clearTimeout(S.timer); S.timer=setTimeout(checkStatus,ms); }
 
@@ -166,6 +180,7 @@ function initGame(){
   $('reachP').style.display='none'; $('reachC').style.display='none';
   show($('btnReplay'),true);
   $('sideP').style.display='block'; $('sideC').style.display='block';
+  playSE('start');
 }
 
 /* ---- 詐欺・指向ルーチン RenewComMode（原作そのまま） ---- */
@@ -215,6 +230,7 @@ function stsPreAction(){
   m.classList.add('kake');
   m.textContent = S.aiko===0 ? 'じゃ〜んけ〜ん！' : 'あ〜いこ〜で！';
   show(m,true);
+  if(S.aiko===0) playSE('kake');
   timerOnce(S.aiko===0?1200:800);
 }
 function stsInputWait(){
@@ -228,6 +244,7 @@ function stsJudge(){
   show($('panelSelect'),false);
   $('centerMsg').textContent=KAKEGOE[rnd(10)];
   S.choiceC=getComTe();
+  playSE('pon');
   setHand(0,S.choiceP,true); setHand(1,S.choiceC,true);   // 腕を中央へ倒す
   timerOnce(1000);
 }
@@ -235,11 +252,12 @@ function showAA(src,ms){
   $('aaimg').src=src; show($('aa'),true);
   timerOnce(ms);
 }
-function stsWin(){ S.winP++; $('winP').textContent='勝ち= '+S.winP; showAA('assets/win01.jpg',2000); }
-function stsLose(){ S.winC++; $('winC').textContent='勝ち= '+S.winC; showAA('assets/lose01.jpg',2000); }
-function stsReachP(){ showAA('assets/reach_player.jpg',3500); }
-function stsReachC(){ showAA('assets/reach_computer.jpg',3500); }
+function stsWin(){ playSE('win'); S.winP++; $('winP').textContent='勝ち= '+S.winP; showAA('assets/win01.jpg',2000); }
+function stsLose(){ playSE('lose'); S.winC++; $('winC').textContent='勝ち= '+S.winC; showAA('assets/lose01.jpg',2000); }
+function stsReachP(){ playSE('reach'); showAA('assets/reach_player.jpg',3500); }
+function stsReachC(){ playSE('reach'); showAA('assets/reach_computer.jpg',3500); }
 function stsGameOver(){
+  playSE('gameover');
   showAA('assets/gameover.jpg',999999); clearTimeout(S.timer);
   const h=$('hint');
   switch(S.gameCnt){
@@ -252,6 +270,7 @@ function stsGameOver(){
   show(h,true);
 }
 function stsTrueEnd(){
+  playSE('trueend');
   showAA('assets/true_ending.jpg',999999); clearTimeout(S.timer);
   const h=$('hint');
   h.textContent='おめでとう！よくここまでたどり着いたね！よっぽど暇なんだね！ゲームクリア！！';
@@ -276,7 +295,7 @@ function checkStatus(){
       switch(judgeWinner(S.choiceP,S.choiceC)){
         case 0: S.status=STS.WIN; stsWin(); break;
         case 1: S.status=STS.LOSE; stsLose(); break;
-        default: S.aiko++; S.status=STS.PRE_ACTION; stsPreAction(); break;
+        default: S.aiko++; playSE('aiko'); S.status=STS.PRE_ACTION; stsPreAction(); break;
       }
       break;
     case STS.WIN:
@@ -300,6 +319,8 @@ function checkStatus(){
 
 /* ---- 入力 ---- */
 $('btnStart').addEventListener('click',checkStatus);
+$('sebtn').addEventListener('click',()=>{ seOn=!seOn; if(!seOn) stopSE();
+  const b=$('sebtn'); b.classList.toggle('off',!seOn); b.textContent=seOn?'🔊':'🔇'; });
 document.querySelectorAll('#panelSelect button').forEach(b=>b.addEventListener('click',()=>{
   if(S.status!==STS.INPUT_WAIT) return;
   S.choiceP=+b.dataset.te; checkStatus();
