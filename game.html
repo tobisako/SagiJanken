@@ -232,7 +232,7 @@ function stsPreAction(){
   m.textContent = S.aiko===0 ? 'じゃ〜んけ〜ん！' : 'あ〜いこ〜で！';
   show(m,true);
   if(S.aiko===0) playSE('kake');
-  timerOnce(S.aiko===0?1200:800);
+  timerOnce(100);   // 原作は1200/800msだが、即ボタンを出して体感向上（表示は入力中も残る）
 }
 function stsInputWait(){
   show($('panelSelect'),true);
