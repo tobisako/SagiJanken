@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>詐欺ジャンケン SagiJanken（プレイ）</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<style>
+  :root{
+    --orange:#FF4500;    /* Duotone: 左 */
+    --navy:#1A1A2E;      /* Duotone: 右 */
+    --lt-orange:#FF8659;
+    --gray:#6A6A77;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--navy);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",YuGothic,Meiryo,sans-serif;
+    -webkit-user-select:none;user-select:none}
+  /* ---- 50/50 color split ---- */
+  #split{position:fixed;inset:0;pointer-events:none}
+  #split .l{position:absolute;top:0;left:0;width:50%;height:100%;background:var(--orange)}
+  #split .r{position:absolute;top:0;right:0;width:50%;height:100%;background:var(--navy)}
+  #split .div{position:absolute;top:0;left:50%;width:3px;height:100%;background:#fff;transform:translateX(-50%)}
+  .plus{position:fixed;pointer-events:none;font-weight:900;color:#fff;opacity:.35;font-size:26px}
+
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1}
+  #stage{position:relative;transform-origin:center center}
+
+  /* ---- stage layout (logical 640x430) ---- */
+  #board{position:absolute;left:0;top:0;width:640px;height:430px;color:#fff}
+  #btnReplay{position:absolute;right:8px;top:8px;font-size:13px;font-weight:700;padding:6px 16px;
+    background:#fff;color:var(--navy);border:0;border-radius:999px;cursor:pointer;display:none;
+    box-shadow:0 3px 8px rgba(0,0,0,.3)}
+  #btnReplay:hover{background:#ffe9df}
+
+  .side{position:absolute;top:84px;width:200px;text-align:center}
+  .side .nm{font-size:15px;font-weight:900;letter-spacing:.12em;margin-bottom:8px}
+  .side .handbox{width:200px;height:172px;background:#fff;border-radius:12px;display:grid;place-items:center;
+    box-shadow:0 8px 22px rgba(0,0,0,.35);overflow:hidden}
+  .side .handbox img{width:170px;height:146px;object-fit:contain;transition:transform .12s}
+  .side .win{margin-top:12px;font-size:22px;font-weight:900}
+  .side .reach{margin-top:6px;font-size:15px;font-weight:900;color:#fff;background:#d40000;
+    border-radius:6px;padding:2px 10px;display:none;letter-spacing:.2em}
+  #sideP{left:28px}
+  #sideC{right:28px}
+
+  /* ---- center message zone ---- */
+  #centerMsg{position:absolute;left:50%;top:120px;transform:translateX(-50%);min-width:230px;
+    padding:14px 22px;background:#fff;color:var(--navy);border-radius:12px;text-align:center;
+    font-size:22px;font-weight:900;box-shadow:0 8px 22px rgba(0,0,0,.35);display:none;white-space:nowrap}
+  #centerMsg.kake{background:#ffe100;color:#7a1400}
+
+  /* ---- input buttons ---- */
+  #panelSelect{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);display:none;gap:12px}
+  #panelSelect button{font-size:19px;font-weight:900;font-family:inherit;padding:12px 22px;border:0;border-radius:10px;cursor:pointer;
+    background:#fff;color:var(--navy);box-shadow:0 5px 14px rgba(0,0,0,.35)}
+  #panelSelect button:hover{background:var(--lt-orange);color:#fff}
+  #panelSelect button:active{transform:translateY(2px)}
+
+  /* ---- title / start ---- */
+  #btnStart{position:absolute;left:50%;top:200px;transform:translateX(-50%);
+    font-size:26px;font-weight:900;font-family:inherit;color:#fff;border:3px solid #fff;border-radius:999px;
+    background:linear-gradient(90deg,var(--orange) 50%,var(--navy) 50%);padding:16px 46px;cursor:pointer;
+    box-shadow:0 8px 26px rgba(0,0,0,.4);display:none}
+  #btnStart:hover{filter:brightness(1.15)}
+  #title{position:absolute;left:0;right:0;top:96px;text-align:center;display:none}
+  #title .t1{font-size:44px;font-weight:900;letter-spacing:.06em;
+    text-shadow:2px 2px 0 rgba(0,0,0,.35)}
+  #title .t2{margin-top:8px;font-size:15px;opacity:.9}
+
+  /* ---- AA overlay ---- */
+  #aa{position:absolute;left:50%;top:46px;transform:translateX(-50%);background:#fff;border-radius:12px;
+    padding:10px;box-shadow:0 12px 34px rgba(0,0,0,.5);display:none;z-index:5}
+  #aa img{display:block;max-width:560px;max-height:300px}
+
+  #hint{position:absolute;left:0;right:0;bottom:36px;text-align:center;font-size:17px;font-weight:900;
+    color:#ffe100;text-shadow:1px 1px 0 rgba(0,0,0,.5);display:none;padding:0 12px}
+
+  #ghlink{position:fixed;right:10px;bottom:8px;z-index:20;font-size:13px;font-weight:700;
+    color:#fff;text-decoration:none;background:rgba(0,0,0,.35);
+    padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.4)}
+  #ghlink:hover{background:rgba(0,0,0,.6)}
+  #keyhint{position:fixed;left:12px;bottom:8px;z-index:20;font-size:13px;color:#fff;
+    background:rgba(0,0,0,.35);padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.3)}
+</style>
+</head>
+<body>
+<div id="split" aria-hidden="true"><i class="l"></i><i class="r"></i><i class="div"></i></div>
+<span class="plus" style="left:8%;top:12%" aria-hidden="true">＋</span>
+<span class="plus" style="left:38%;top:78%" aria-hidden="true">＋</span>
+<span class="plus" style="right:7%;top:18%" aria-hidden="true">＋</span>
+<span class="plus" style="right:30%;bottom:10%" aria-hidden="true">＋</span>
+
+<a id="ghlink" href="https://github.com/tobisako/SagiJanken" target="_blank" rel="noopener">↗ GitHub</a>
+<span id="keyhint">キー1＝グー・2＝チョキ・3＝パー</span>
+
+<div id="wrap">
+  <div id="stage">
+    <div id="board">
+      <button id="btnReplay">リプレイ</button>
+
+      <div id="title">
+        <div class="t1">詐欺ジャンケン</div>
+        <div class="t2">コンピューターと対戦。先に勝ち続ければ勝利……のはず。</div>
+      </div>
+      <button id="btnStart">スタート</button>
+
+      <div class="side" id="sideP">
+        <div class="nm">プレイヤー</div>
+        <div class="handbox"><img id="handP" src="assets/01_goo.jpg" alt="プレイヤーの手"></div>
+        <div class="win" id="winP">勝ち= 0</div>
+        <div class="reach" id="reachP">リーチ！</div>
+      </div>
+      <div class="side" id="sideC">
+        <div class="nm">コンピューター</div>
+        <div class="handbox"><img id="handC" src="assets/01_goo.jpg" alt="コンピューターの手" style="transform:scaleX(-1)"></div>
+        <div class="win" id="winC">勝ち= 0</div>
+        <div class="reach" id="reachC">リーチ！</div>
+      </div>
+
+      <div id="centerMsg"></div>
+      <div id="panelSelect">
+        <button data-te="0">グー</button><button data-te="1">チョキ</button><button data-te="2">パー</button>
+      </div>
+      <div id="aa"><img id="aaimg" src="assets/win01.jpg" alt=""></div>
+      <div id="hint"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 原作 JangKeng.cpp の移植（Visual C++ 2008 / C++CLI版） ============ */
+const REACH=5, WINCNT=6;            // GAME_REACH_COUNT / GAME_WIN_COUNT（原作コメント:「4/5にすればよかった」）
+const STS={TITLE:0,TURN_OPENING:1,PRE_ACTION:2,INPUT_WAIT:3,JUDGE:4,WIN:5,LOSE:6,
+           REACH_P:8,REACH_C:9,TRUE_END:10,OVER:11};
+const TE={GUU:0,CHOKI:1,PAA:2,NONE:3};
+const MODE={NORMAL:0,SAGI:1,MAKE:2};
+const KAKEGOE=["うりゃっ！","どりゃっ！","そいやっ！","・・・？！","ごるぁ！！",
+               "なん…だと？！","ぽんっ！！","どかん！！","ほいっ！！","ほっす！！"];
+const HANDS=["assets/01_goo.jpg","assets/02_choki.jpg","assets/03_paa.jpg"];
+
+const S={ status:STS.TITLE, cntGame:0, winP:0, winC:0, aiko:0, choiceP:TE.NONE, choiceC:TE.NONE,
+          mode:MODE.NORMAL, aikoLevel:0, gameCnt:0, truemode:false, timer:null, animTimer:null };
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n);
+
+function show(el,on){ el.style.display = on ? (el.tagName==='BUTTON'?'inline-block':'block') : 'none'; }
+function timerOnce(ms){ clearTimeout(S.timer); S.timer=setTimeout(checkStatus,ms); }
+
+/* 手画像のセット（コンピューターは左右反転、judge時は中央へ回転） */
+function setHand(who,te,rot){
+  const im = who===0 ? $('handP') : $('handC');
+  im.src=HANDS[te];
+  im.style.transform = (who===1?'scaleX(-1) ':'') + (rot ? (who===0?'rotate(90deg)':'rotate(-90deg)') : '');
+}
+
+/* ---- InitializeGame ---- */
+function initGame(){
+  S.cntGame=0; S.winP=0; S.winC=0; S.mode=MODE.NORMAL; S.aikoLevel=0; S.gameCnt++;
+  show($('title'),false); show($('btnStart'),false);
+  show($('panelSelect'),false); show($('aa'),false); show($('hint'),false);
+  $('reachP').style.display='none'; $('reachC').style.display='none';
+  show($('btnReplay'),true);
+  $('sideP').style.display='block'; $('sideC').style.display='block';
+}
+
+/* ---- 詐欺・指向ルーチン RenewComMode（原作そのまま） ---- */
+function renewComMode(){
+  if(S.winP>=5){
+    S.mode=MODE.SAGI;
+    if(S.winC>=5){ S.aikoLevel=rnd(5)+5; }        // 最終決戦: あいこ5〜9回
+    else{ S.aikoLevel=rnd(3); }                   // あいこ0〜2回
+    return;
+  }
+  if(S.winC>=5){ S.mode=MODE.MAKE; S.aikoLevel=rnd(3)+2; return; }   // 追いつかせる
+  if(S.winP<=1){ S.mode=MODE.MAKE; S.aikoLevel=rnd(2)+S.winC; return; } // 最初の2勝はくれてやる
+  if(S.winP===3&&S.winC===0){ S.mode=MODE.SAGI; S.aikoLevel=rnd(2); return; } // 1回くらい勝たせろ
+  S.mode=MODE.NORMAL; S.aikoLevel=0;
+}
+
+/* ---- コンピューターの手（詐欺） ---- */
+const winChoice = te => te===TE.GUU?TE.PAA : te===TE.CHOKI?TE.GUU : TE.CHOKI;
+const loseChoice = te => te===TE.GUU?TE.CHOKI : te===TE.CHOKI?TE.PAA : TE.GUU;
+function getComTe(){
+  switch(S.mode){
+    case MODE.NORMAL: return rnd(3);
+    case MODE.SAGI:
+      if(S.aiko<S.aikoLevel) return S.choiceP;                 // あいこ演出
+      if(S.winP===5&&S.winC===5&&S.truemode) return loseChoice(S.choiceP);  // true end
+      return winChoice(S.choiceP);                             // コンピューター必勝
+    default:
+      if(S.aiko<S.aikoLevel) return S.choiceP;
+      return loseChoice(S.choiceP);                            // わざと負ける
+  }
+}
+function judgeWinner(p,c){ if(p===c) return 2; return ((p===TE.GUU&&c===TE.CHOKI)||(p===TE.CHOKI&&c===TE.PAA)||(p===TE.PAA&&c===TE.GUU)) ? 0 : 1; }
+
+/* ---- 各ステータスの表示 ---- */
+function stsTurnOpening(){
+  S.cntGame++; S.aiko=0;
+  const m=$('centerMsg'); m.className=''; m.id='centerMsg';
+  m.textContent=`第 ${S.cntGame} 回戦、スタート！`; show(m,true);
+  $('winP').textContent='勝ち= '+S.winP; $('winC').textContent='勝ち= '+S.winC;
+  $('reachP').style.display = S.winP===REACH?'inline-block':'none';
+  $('reachC').style.display = S.winC===REACH?'inline-block':'none';
+  renewComMode();
+  timerOnce(1500);
+}
+function stsPreAction(){
+  const m=$('centerMsg');
+  m.classList.add('kake');
+  m.textContent = S.aiko===0 ? 'じゃ〜んけ〜ん！' : 'あ〜いこ〜で！';
+  show(m,true);
+  timerOnce(S.aiko===0?1200:800);
+}
+function stsInputWait(){
+  show($('panelSelect'),true);
+  S.choiceP=TE.NONE;
+  clearInterval(S.animTimer);
+  S.animTimer=setInterval(()=>{ setHand(0,rnd(3),false); setHand(1,rnd(3),false); },100); // 高速回転
+}
+function stsJudge(){
+  clearInterval(S.animTimer);
+  show($('panelSelect'),false);
+  $('centerMsg').textContent=KAKEGOE[rnd(10)];
+  S.choiceC=getComTe();
+  setHand(0,S.choiceP,true); setHand(1,S.choiceC,true);   // 腕を中央へ倒す
+  timerOnce(1000);
+}
+function showAA(src,ms){
+  $('aaimg').src=src; show($('aa'),true);
+  timerOnce(ms);
+}
+function stsWin(){ S.winP++; $('winP').textContent='勝ち= '+S.winP; showAA('assets/win01.jpg',2000); }
+function stsLose(){ S.winC++; $('winC').textContent='勝ち= '+S.winC; showAA('assets/lose01.jpg',2000); }
+function stsReachP(){ showAA('assets/reach_player.jpg',3500); }
+function stsReachC(){ showAA('assets/reach_computer.jpg',3500); }
+function stsGameOver(){
+  showAA('assets/gameover.jpg',999999); clearTimeout(S.timer);
+  const h=$('hint');
+  switch(S.gameCnt){
+    case 1: h.textContent='m9(^Д^)プギャー！！！ｗｗｗ'; break;
+    case 2: h.textContent='ワロスｗｗｗテラワロスｗｗｗ'; break;
+    case 3: h.textContent='アンタもしつこいねぇ。無理だってばよｗｗ'; break;
+    case 4: h.textContent='…。ヒントは「３対３でやり直し」だよ。'; break;
+    default: h.textContent='もう諦めなってｗｗｗ無駄無駄無駄無駄ぁぁ！！！';
+  }
+  show(h,true);
+}
+function stsTrueEnd(){
+  showAA('assets/true_ending.jpg',999999); clearTimeout(S.timer);
+  const h=$('hint');
+  h.textContent='おめでとう！よくここまでたどり着いたね！よっぽど暇なんだね！ゲームクリア！！';
+  show(h,true);
+}
+
+/* ---- CheckStatus（原作の遷移そのまま） ---- */
+function checkStatus(){
+  switch(S.status){
+    case STS.TITLE:
+      initGame(); S.status=STS.TURN_OPENING; stsTurnOpening(); break;
+    case STS.TURN_OPENING:
+      S.status=STS.PRE_ACTION; stsPreAction(); break;
+    case STS.PRE_ACTION:
+      S.status=STS.INPUT_WAIT; stsInputWait(); break;
+    case STS.INPUT_WAIT:
+      if(S.choiceP!==TE.NONE){ S.status=STS.JUDGE; stsJudge(); }
+      break;
+    case STS.JUDGE:
+      setHand(0,S.choiceP,false); setHand(1,S.choiceC,false);   // 腕の傾きを元に戻す
+      show($('centerMsg'),false);
+      switch(judgeWinner(S.choiceP,S.choiceC)){
+        case 0: S.status=STS.WIN; stsWin(); break;
+        case 1: S.status=STS.LOSE; stsLose(); break;
+        default: S.aiko++; S.status=STS.PRE_ACTION; stsPreAction(); break;
+      }
+      break;
+    case STS.WIN:
+      show($('aa'),false);
+      if(S.winP===REACH){ S.status=STS.REACH_P; stsReachP(); }
+      else if(S.winP===WINCNT){ S.status=STS.TRUE_END; stsTrueEnd(); }
+      else{ S.status=STS.TURN_OPENING; stsTurnOpening(); }
+      break;
+    case STS.REACH_P:
+      show($('aa'),false); S.status=STS.TURN_OPENING; stsTurnOpening(); break;
+    case STS.LOSE:
+      show($('aa'),false);
+      if(S.winC===REACH){ S.status=STS.REACH_C; stsReachC(); }
+      else if(S.winC===WINCNT){ S.status=STS.OVER; stsGameOver(); }
+      else{ S.status=STS.TURN_OPENING; stsTurnOpening(); }
+      break;
+    case STS.REACH_C:
+      show($('aa'),false); S.status=STS.TURN_OPENING; stsTurnOpening(); break;
+  }
+}
+
+/* ---- 入力 ---- */
+$('btnStart').addEventListener('click',checkStatus);
+document.querySelectorAll('#panelSelect button').forEach(b=>b.addEventListener('click',()=>{
+  if(S.status!==STS.INPUT_WAIT) return;
+  S.choiceP=+b.dataset.te; checkStatus();
+}));
+addEventListener('keydown',e=>{
+  if(S.status!==STS.INPUT_WAIT) return;
+  if(e.key>='1'&&e.key<='3'){ S.choiceP=+e.key-1; checkStatus(); }
+});
+$('btnReplay').addEventListener('click',()=>{        // 3対3でやり直すと……
+  if(S.winP===3&&S.winC===3) S.truemode=true;
+  clearTimeout(S.timer); clearInterval(S.animTimer);
+  S.status=STS.TITLE; checkStatus();
+});
+
+/* ---- タイトル表示 ---- */
+function showTitle(){
+  show($('title'),true); show($('btnStart'),true);
+  show($('centerMsg'),false); show($('panelSelect'),false); show($('aa'),false); show($('hint'),false);
+  show($('btnReplay'),false);
+  $('sideP').style.display='none'; $('sideC').style.display='none';
+}
+showTitle();
+
+/* ---- スケーリング ---- */
+function layout(){
+  const W=640,H=430,st=$('stage');
+  st.style.width=W+'px'; st.style.height=H+'px';
+  const s=Math.min((innerWidth-16)/W,(innerHeight-60)/H,1.8);
+  st.style.transform=`scale(${s})`;
+}
+addEventListener('resize',layout); layout();
+</script>
+</body>
+</html>

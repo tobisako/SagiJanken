@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>詐欺ジャンケン SagiJanken — HTML5リメイク</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --orange:#FF4500;
+    --navy:#1A1A2E;
+    --lt:#FF8659;
+    --gray:#6A6A77;
+    --cream:#731F00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--navy);color:#f2f2f2;
+    font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",YuGothic,Meiryo,sans-serif;
+    font-feature-settings:"palt" 1;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;position:relative;overflow-x:hidden}
+  a{color:var(--lt)}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 22px}
+  .mono{font-family:"JetBrains Mono",monospace}
+
+  /* ---------- duotone split hero ---------- */
+  .hero{position:relative;overflow:hidden;color:#fff}
+  .hero .half{position:absolute;top:0;bottom:0;width:50%}
+  .hero .half.l{left:0;background:var(--orange)}
+  .hero .half.r{right:0;background:var(--navy)}
+  .hero .div{position:absolute;top:0;bottom:0;left:50%;width:3px;background:#fff;transform:translateX(-50%)}
+  .hero .inner{position:relative;z-index:1;max-width:1020px;margin:0 auto;padding:26px 22px 34px}
+  .topbar{display:flex;align-items:center;gap:12px;font-size:13px;letter-spacing:.16em;font-weight:700}
+  .topbar .sq{width:10px;height:10px;background:#fff}
+  .topbar a.gh{margin-left:auto;background:#fff;color:var(--navy);text-decoration:none;font-weight:900;
+    font-size:14px;padding:8px 16px;border-radius:999px;box-shadow:0 4px 10px rgba(0,0,0,.3)}
+  .topbar a.gh:hover{background:#ffe9df}
+  .hero h1{margin-top:30px;text-align:center;font-size:46px;font-weight:900;letter-spacing:.04em;
+    text-shadow:2px 3px 0 rgba(0,0,0,.35)}
+  .hero .en{margin-top:8px;text-align:center;font-size:13px;letter-spacing:.3em;opacity:.9;font-weight:700}
+  .hero .vs{margin-top:22px;display:flex;justify-content:center;gap:0;font-size:19px;font-weight:900}
+  .hero .vs span{padding:8px 22px}
+  .hero .vs .p{background:rgba(255,255,255,.16);border-radius:10px 0 0 10px}
+  .hero .vs .c{background:rgba(0,0,0,.25);border-radius:0 10px 10px 0}
+  .hero .vs .x{background:#fff;color:var(--navy);border-radius:0}
+  .hero .lead{margin:24px auto 0;max-width:760px;font-size:18px;line-height:1.9;text-align:center}
+  .hero .lead b{color:#ffe100}
+  .plus{position:absolute;font-weight:900;color:#fff;opacity:.4;font-size:24px;pointer-events:none}
+
+  /* ---------- stage ---------- */
+  .stage-frame{margin:26px auto 8px;max-width:1020px;background:#10101d;border:1px solid #ffffff2e;border-radius:10px;
+    overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.5)}
+  .stage-frame .bar-top{height:5px;background:linear-gradient(90deg,var(--orange) 0 50%,#fff 50% calc(50% + 3px),var(--navy) calc(50% + 3px))}
+  .stage-frame iframe{display:block;width:100%;height:540px;border:0;background:var(--navy)}
+  @media(max-width:680px){.stage-frame iframe{height:470px}}
+  .stage-bar{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#14142a;
+    border-top:1px solid #ffffff22;font-size:15px;color:#cfcfe0;flex-wrap:wrap}
+  .stage-bar .dot{width:9px;height:9px;border-radius:50%;background:var(--orange);box-shadow:0 0 10px var(--orange)}
+  .stage-bar b{color:#fff}
+  .stage-bar a.full{margin-left:auto;text-decoration:none;font-weight:700;color:#fff;
+    background:var(--orange);padding:8px 16px;border-radius:6px}
+  .stage-bar a.full:hover{background:#d63a00}
+
+  /* ---------- sections ---------- */
+  h2.sec{margin:44px 0 16px;font-size:24px;font-weight:900;display:flex;align-items:center;gap:12px}
+  h2.sec::before{content:"";width:10px;height:10px;background:var(--orange)}
+  h2.sec .mono{font-size:13px;color:var(--lt);letter-spacing:.2em;font-weight:700;margin-left:4px}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{background:#ffffff10;border:1px solid #ffffff2a;border-radius:8px;padding:18px 18px 16px;position:relative}
+  .step .n{position:absolute;top:-11px;left:14px;background:var(--orange);color:#fff;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13px;padding:2px 10px;border-radius:999px}
+  .step .t{font-size:18px;font-weight:900;margin:4px 0 8px}
+  .step .d{font-size:16px;line-height:1.75;color:#d9d9e6}
+  .step .d b{color:var(--lt)}
+
+  /* README引用の仕掛けリスト */
+  .trick{margin-top:16px;background:#ffffff10;border:1px solid #ffffff2a;border-radius:8px;padding:20px 24px}
+  .trick .cap{font-size:15px;color:#bdbdd0;margin-bottom:10px}
+  .trick ol{margin-left:24px;font-size:17px;line-height:2.05}
+  .trick ol li b{color:#ffe100}
+
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
+  @media(max-width:860px){.facts{grid-template-columns:repeat(2,1fr)}}
+  .blk{background:#ffffff10;border:1px solid #ffffff2a;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:6px}
+  .blk .num{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:24px;color:var(--lt)}
+  .blk .cap{font-size:15.5px;line-height:1.7;color:#d9d9e6}
+  .blk .cap b{color:#fff}
+
+  .band{margin-top:36px;background:var(--cream);border-left:6px solid var(--lt);border-radius:6px;padding:18px 22px}
+  .band .bl{font-size:15px;color:#f3d9c8;margin-bottom:6px}
+  .band .bt2{font-size:18px;font-weight:500;line-height:1.9;color:#fff}
+  .band .bt2 b{font-weight:900;color:#ffe100}
+
+  footer{margin-top:46px;background:var(--orange);color:#fff}
+  footer .fl{display:flex;gap:0;font-size:13px;letter-spacing:.06em;padding:12px 22px;max-width:1020px;margin:0 auto;flex-wrap:wrap}
+  footer .fl span{flex:1;white-space:nowrap}
+  footer .fl span:nth-child(2){text-align:center}
+  footer .fl span:nth-child(3){text-align:right}
+  footer a{color:#fff;font-weight:900}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <i class="half l" aria-hidden="true"></i><i class="half r" aria-hidden="true"></i><i class="div" aria-hidden="true"></i>
+  <span class="plus" style="left:6%;top:30%" aria-hidden="true">＋</span>
+  <span class="plus" style="left:40%;top:80%" aria-hidden="true">＋</span>
+  <span class="plus" style="right:8%;top:22%" aria-hidden="true">＋</span>
+  <div class="inner">
+    <div class="topbar mono">
+      <span class="sq" aria-hidden="true"></span>
+      <span>SAGIJANKEN</span>
+      <a class="gh" href="https://github.com/tobisako/SagiJanken" target="_blank" rel="noopener">↗ GitHub</a>
+    </div>
+    <h1>詐欺ジャンケン SagiJanken</h1>
+    <div class="en mono">SAGI JANKEN — HTML5 REMAKE</div>
+    <div class="vs"><span class="p">プレイヤー</span><span class="x">VS</span><span class="c">コンピューター</span></div>
+    <p class="lead">
+      <b>詐欺機能を搭載した</b>、シンプルなジャンケンゲームです。
+      コンピューターと対戦し、先に5回勝てば勝利。
+      ——でも、<b>プレイヤーは絶対に勝てない様に作られています</b>。
+      Visual C++ 2008 製の原作を、プラグイン不要の HTML5 / JavaScript に移植しました。
+    </p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="stage-frame">
+      <div class="bar-top" aria-hidden="true"></div>
+      <iframe src="game.html" title="詐欺ジャンケン（プレイ画面）"></iframe>
+      <div class="stage-bar">
+        <span class="dot"></span>
+        <span>枠内の「<b>スタート</b>」を押すとその場で遊べます</span>
+        <a class="full" href="game.html" target="_blank" rel="noopener">↗ 全画面で開く</a>
+      </div>
+    </div>
+
+    <h2 class="sec">あそびかた<span class="mono">HOW TO PLAY</span></h2>
+    <div class="steps">
+      <div class="step"><span class="n">STEP 1</span>
+        <div class="t">スタート</div>
+        <div class="d">「じゃ〜んけ〜ん！」の掛け声のあと、手の絵柄が高速で入れ替わります。</div></div>
+      <div class="step"><span class="n">STEP 2</span>
+        <div class="t">グー・チョキ・パー</div>
+        <div class="d">ボタン（キー<b>1・2・3</b>でも可）で手を出すと、ランダムなかけ声（全10種）とともに勝負。勝敗はAA画像で表示されます。</div></div>
+      <div class="step"><span class="n">STEP 3</span>
+        <div class="t">先に5回勝てば勝利</div>
+        <div class="d">勝ち数が並んで表示されます。<b>リーチ</b>になると展開が変わってきます。負け続けると、ゲームがヒントをくれるかも。</div></div>
+    </div>
+
+    <h2 class="sec">仕掛け（READMEより）<span class="mono">THE TRICK</span></h2>
+    <div class="trick">
+      <div class="cap">「プレイヤーは絶対に勝てない様に作られています。」——リポジトリREADMEに書かれている仕掛けの全文：</div>
+      <ol>
+        <li>最初は普通。</li>
+        <li>プレイヤーが<b>じわじわ勝つ</b>様になっている。</li>
+        <li>プレイヤーがリーチになると、<b>コンピューターが追い上げてくる</b>。</li>
+        <li>両者リーチになると、<b>白熱展開っぽくなる</b>。</li>
+        <li>最後は<b>プレイヤーが絶対負ける</b>。</li>
+      </ol>
+    </div>
+
+    <h2 class="sec">この移植について<span class="mono">FACTS</span></h2>
+    <div class="facts">
+      <div class="blk"><span class="num">3モード</span>
+        <span class="cap">コンピューターの手を決める<b>ノーマル／詐欺／負け</b>の3モード（ソースの MODE_NOMAL・MODE_SAGI・MODE_MAKE）を切り替えて「じわじわ感」を演出</span></div>
+      <div class="blk"><span class="num">あいこ5〜9回</span>
+        <span class="cap">両者リーチの最終決戦では<b>わざと あいこを5〜9回</b>はさんで白熱っぽく（RenewComMode の値そのまま）</span></div>
+      <div class="blk"><span class="num">勝利条件は6勝</span>
+        <span class="cap">READMEは「先に5回勝てば勝利」。でもソースの定数は REACH=5・WIN=<b>6</b> — コメント曰く「勝利数は『6』…5にすればよかった」</span></div>
+      <div class="blk"><span class="num">かけ声10種</span>
+        <span class="cap">「うりゃっ！」「なん…だと？！」「ごるぁ！！」など、勝負の瞬間の<b>かけ声はランダム10種</b></span></div>
+    </div>
+
+    <div class="band">
+      <div class="bl">原作について（リポジトリREADMEより）</div>
+      <div class="bt2">Visual C++ 2008 製（2016年9月公開）。勝敗・リーチなどの画面は<b>AA（アスキーアート）画像</b>、ジャンケンの手は<b>実写画像</b>という構成もそのまま移植しています。「楽しんでください。」</div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="fl mono">
+      <span>tobisako — <a href="https://github.com/tobisako" target="_blank" rel="noopener">GITHUB</a></span>
+      <span>SAGIJANKEN — HTML5 REMAKE</span>
+      <span><a href="https://github.com/tobisako/SagiJanken" target="_blank" rel="noopener">↗ SOURCE / README</a></span>
+    </div>
+  </footer>
+</main>
+</body>
+</html>
