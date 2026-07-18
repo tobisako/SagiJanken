@@ -131,7 +131,10 @@
 <script>
 "use strict";
 /* ============ 原作 JangKeng.cpp の移植（Visual C++ 2008 / C++CLI版） ============ */
-const REACH=5, WINCNT=6;            // GAME_REACH_COUNT / GAME_WIN_COUNT（原作コメント:「4/5にすればよかった」）
+/* 原作の定数は REACH=5/WIN=6 だが、原作コメント自ら
+   「リーチ数は『5』…4にすればよかった」「勝利数は『6』…5にすればよかった」
+   と書いているため、ブラウザ版はコメントどおり 4/5 に修正（READMEの「先に5回勝てば勝利」と一致） */
+const REACH=4, WINCNT=5;
 const STS={TITLE:0,TURN_OPENING:1,PRE_ACTION:2,INPUT_WAIT:3,JUDGE:4,WIN:5,LOSE:6,
            REACH_P:8,REACH_C:9,TRUE_END:10,OVER:11};
 const TE={GUU:0,CHOKI:1,PAA:2,NONE:3};
@@ -167,13 +170,13 @@ function initGame(){
 
 /* ---- 詐欺・指向ルーチン RenewComMode（原作そのまま） ---- */
 function renewComMode(){
-  if(S.winP>=5){
+  if(S.winP>=REACH){                              // プレイヤーが勝ちかけ→詐欺モード
     S.mode=MODE.SAGI;
-    if(S.winC>=5){ S.aikoLevel=rnd(5)+5; }        // 最終決戦: あいこ5〜9回
+    if(S.winC>=REACH){ S.aikoLevel=rnd(5)+5; }    // 最終決戦(リーチvsリーチ): あいこ5〜9回
     else{ S.aikoLevel=rnd(3); }                   // あいこ0〜2回
     return;
   }
-  if(S.winC>=5){ S.mode=MODE.MAKE; S.aikoLevel=rnd(3)+2; return; }   // 追いつかせる
+  if(S.winC>=REACH){ S.mode=MODE.MAKE; S.aikoLevel=rnd(3)+2; return; }   // 追いつかせる
   if(S.winP<=1){ S.mode=MODE.MAKE; S.aikoLevel=rnd(2)+S.winC; return; } // 最初の2勝はくれてやる
   if(S.winP===3&&S.winC===0){ S.mode=MODE.SAGI; S.aikoLevel=rnd(2); return; } // 1回くらい勝たせろ
   S.mode=MODE.NORMAL; S.aikoLevel=0;
@@ -187,7 +190,7 @@ function getComTe(){
     case MODE.NORMAL: return rnd(3);
     case MODE.SAGI:
       if(S.aiko<S.aikoLevel) return S.choiceP;                 // あいこ演出
-      if(S.winP===5&&S.winC===5&&S.truemode) return loseChoice(S.choiceP);  // true end
+      if(S.winP===REACH&&S.winC===REACH&&S.truemode) return loseChoice(S.choiceP);  // true end
       return winChoice(S.choiceP);                             // コンピューター必勝
     default:
       if(S.aiko<S.aikoLevel) return S.choiceP;
