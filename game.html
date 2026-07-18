@@ -117,7 +117,7 @@
       </div>
       <div class="side" id="sideC">
         <div class="nm">コンピューター</div>
-        <div class="handbox"><img id="handC" src="assets/01_goo.jpg" alt="コンピューターの手" style="transform:scaleX(-1)"></div>
+        <div class="handbox"><img id="handC" src="assets/01_goo_f.jpg" alt="コンピューターの手"></div>
         <div class="win" id="winC">勝ち= 0</div>
         <div class="reach" id="reachC">リーチ！</div>
       </div>
@@ -146,6 +146,7 @@ const MODE={NORMAL:0,SAGI:1,MAKE:2};
 const KAKEGOE=["うりゃっ！","どりゃっ！","そいやっ！","・・・？！","ごるぁ！！",
                "なん…だと？！","ぽんっ！！","どかん！！","ほいっ！！","ほっす！！"];
 const HANDS=["assets/01_goo.jpg","assets/02_choki.jpg","assets/03_paa.jpg"];
+const HANDS_F=["assets/01_goo_f.jpg","assets/02_choki_f.jpg","assets/03_paa_f.jpg"];  // コンピューター用（左右反転済み画像＝原作方式）
 
 const S={ status:STS.TITLE, cntGame:0, winP:0, winC:0, aiko:0, choiceP:TE.NONE, choiceC:TE.NONE,
           mode:MODE.NORMAL, aikoLevel:0, gameCnt:0, truemode:false, timer:null, animTimer:null };
@@ -169,8 +170,9 @@ function timerOnce(ms){ clearTimeout(S.timer); S.timer=setTimeout(checkStatus,ms
 /* 手画像のセット（コンピューターは左右反転、judge時は中央へ回転） */
 function setHand(who,te,rot){
   const im = who===0 ? $('handP') : $('handC');
-  im.src=HANDS[te];
-  im.style.transform = (who===1?'scaleX(-1) ':'') + (rot ? 'rotate(90deg)' : '');   // scaleX(-1)との合成で、コンピューター側は見た目が反時計回りになる
+  im.src = (who===0 ? HANDS : HANDS_F)[te];
+  /* プレイヤー=時計回り90度、コンピューター=反時計回り90度（ともに中央を向く） */
+  im.style.transform = rot ? (who===0 ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)';
 }
 
 /* ---- InitializeGame ---- */
